@@ -63,12 +63,15 @@ export async function criarServico(
   redirect(`/?view=mes&data=${diaKey}&dia=${diaKey}`);
 }
 
-export type MudarStatusState = { erro: string } | { sucesso: true } | undefined;
+export type MudarStatusState = { erro: string } | undefined;
 
-// Fluxo de status: agendado -> em_andamento -> concluido, com cancelado
-// possível a qualquer momento antes de um estado final.
+// Fluxo de status: agendado -> concluido, com cancelado possível a
+// qualquer momento a partir de agendado. "em_andamento" era uma etapa
+// intermediária do fluxo antigo — não é mais um destino válido, mas
+// serviços antigos com esse status ainda podem ser concluídos ou
+// cancelados normalmente.
 const TRANSICOES_VALIDAS: Record<string, readonly string[]> = {
-  agendado: ["em_andamento", "cancelado"],
+  agendado: ["concluido", "cancelado"],
   em_andamento: ["concluido", "cancelado"],
   concluido: [],
   cancelado: [],
@@ -83,20 +86,20 @@ export async function mudarStatusServico(
   const validatedFields = MudarStatusSchema.safeParse({
     servicoId: formData.get("servicoId"),
     novoStatus: formData.get("novoStatus"),
-    // Ausente (null) nos formulários que não pedem observações finais —
-    // normaliza pra string vazia, já que o campo é opcional no schema.
-    observacoesFinais: formData.get("observacoesFinais") ?? "",
+    // Ausente (null) se o campo não vier no formData — normaliza pra
+    // string vazia, já que é opcional no schema.
+    observacoes: formData.get("observacoes") ?? "",
   });
 
   if (!validatedFields.success) {
     return { erro: validatedFields.error.issues[0]?.message ?? "Dados inválidos." };
   }
 
-  const { servicoId, novoStatus, observacoesFinais } = validatedFields.data;
+  const { servicoId, novoStatus, observacoes } = validatedFields.data;
 
   const servico = await prisma.servico.findUnique({
     where: { id: servicoId },
-    select: { status: true, observacoes: true },
+    select: { status: true, data: true },
   });
 
   if (!servico) {
@@ -109,21 +112,18 @@ export async function mudarStatusServico(
     return { erro: "Essa mudança de status não é permitida." };
   }
 
-  const novasObservacoes =
-    novoStatus === "concluido" && observacoesFinais
-      ? [servico.observacoes, observacoesFinais].filter(Boolean).join("\n\n")
-      : undefined;
-
   await prisma.servico.update({
     where: { id: servicoId },
     data: {
       status: novoStatus,
-      ...(novasObservacoes !== undefined ? { observacoes: novasObservacoes } : {}),
+      // Opcional: se preenchido, substitui o valor atual (não acumula
+      // histórico); se vazio, mantém as observações que já existiam.
+      ...(observacoes ? { observacoes } : {}),
       ...(novoStatus === "concluido" ? { concluidoEm: new Date() } : {}),
     },
   });
 
+  const diaKey = toDateKey(servico.data);
   revalidatePath("/");
-  revalidatePath(`/servicos/${servicoId}`);
-  return { sucesso: true };
+  redirect(`/?view=mes&data=${diaKey}&dia=${diaKey}`);
 }

@@ -57,20 +57,19 @@ export const NovoServicoSchema = z.object({
 
 export type NovoServicoInput = z.infer<typeof NovoServicoSchema>;
 
-export const STATUS_SERVICO = [
-  "agendado",
-  "em_andamento",
-  "concluido",
-  "cancelado",
-] as const;
+// "em_andamento" não é mais um destino válido de transição — fica de fora
+// de propósito. Serviços antigos ainda podem ter esse status gravado (era
+// uma etapa intermediária do fluxo antigo), só não é mais possível definir
+// um serviço como "em_andamento" pela tela.
+export const STATUS_SERVICO = ["agendado", "concluido", "cancelado"] as const;
 
 export const MudarStatusSchema = z.object({
   servicoId: z.string().min(1, { error: "Serviço inválido." }),
   novoStatus: z.enum(STATUS_SERVICO, { error: "Status inválido." }),
-  observacoesFinais: z
+  observacoes: z
     .string()
     .trim()
-    .max(1000, { error: "Observações muito longas." })
+    .max(500, { error: "Observações muito longas (máximo 500 caracteres)." })
     .optional()
     .or(z.literal("")),
 });
