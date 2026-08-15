@@ -3,7 +3,12 @@ import { notFound } from "next/navigation";
 import { getUsuarioAtual } from "@/app/lib/dal";
 import { formatDataHora, formatDiaCompleto } from "@/app/lib/date-utils";
 import { prisma } from "@/app/lib/db";
-import { corDoTipoServico, labelDoStatus, labelDoTipoServico } from "@/app/lib/tipo-servico";
+import {
+  corDoTipoServico,
+  labelDoStatus,
+  labelDoTipoServico,
+  nomeDoResponsavel,
+} from "@/app/lib/tipo-servico";
 import { ExcluirServicoForm } from "./excluir-servico-form";
 import { MudarStatusForm } from "./mudar-status-form";
 
@@ -20,21 +25,28 @@ export default async function ServicoDetalhePage({
   const usuario = await getUsuarioAtual();
   const { id } = await params;
 
-  const servico = await prisma.servico.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      local: true,
-      endereco: true,
-      data: true,
-      horario: true,
-      tipoServico: true,
-      status: true,
-      observacoes: true,
-      concluidoEm: true,
-      responsavel: { select: { nome: true } },
-    },
-  });
+  const [servico, funcionariosAtivos] = await Promise.all([
+    prisma.servico.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        local: true,
+        endereco: true,
+        data: true,
+        horario: true,
+        tipoServico: true,
+        status: true,
+        observacoes: true,
+        concluidoEm: true,
+        responsavel: { select: { nome: true } },
+      },
+    }),
+    prisma.usuario.findMany({
+      where: { ativo: true },
+      select: { id: true, nome: true },
+      orderBy: { nome: "asc" },
+    }),
+  ]);
 
   if (!servico) {
     notFound();
@@ -89,7 +101,7 @@ export default async function ServicoDetalhePage({
             <div className="flex justify-between gap-3">
               <dt className="text-zinc-500 dark:text-zinc-400">Responsável</dt>
               <dd className="text-right font-medium text-zinc-900 dark:text-zinc-50">
-                {servico.responsavel.nome}
+                {nomeDoResponsavel(servico.responsavel)}
               </dd>
             </div>
             {servico.concluidoEm && (
@@ -114,7 +126,11 @@ export default async function ServicoDetalhePage({
           )}
         </div>
 
-        <MudarStatusForm servicoId={servico.id} statusAtual={servico.status} />
+        <MudarStatusForm
+          servicoId={servico.id}
+          statusAtual={servico.status}
+          funcionariosAtivos={funcionariosAtivos}
+        />
 
         {usuario.tipo === "admin" && (
           <ExcluirServicoForm servicoId={servico.id} local={servico.local} />

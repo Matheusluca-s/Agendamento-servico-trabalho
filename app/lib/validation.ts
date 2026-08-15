@@ -84,7 +84,7 @@ export const NovoServicoSchema = z.object({
     .string()
     .regex(/^([01]\d|2[0-3]):[0-5]\d$/, { error: "Selecione um horário válido." }),
   tipoServico: z.enum(TIPOS_SERVICO, { error: "Selecione o tipo de serviço." }),
-  responsavelId: z.string().min(1, { error: "Selecione o funcionário responsável." }),
+  responsavelId: z.string().optional().or(z.literal("")),
   observacoes: z
     .string()
     .trim()
@@ -110,6 +110,9 @@ export const MudarStatusSchema = z.object({
     .max(500, { error: "Observações muito longas (máximo 500 caracteres)." })
     .optional()
     .or(z.literal("")),
+  // Só usado na transição pra "concluido" ("quem realizou o serviço") —
+  // opcional, mantém o responsável atual se não vier preenchido.
+  responsavelId: z.string().optional().or(z.literal("")),
 });
 
 export type MudarStatusInput = z.infer<typeof MudarStatusSchema>;

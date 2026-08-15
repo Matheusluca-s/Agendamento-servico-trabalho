@@ -1,5 +1,10 @@
 import Link from "next/link";
-import { corDoTipoServico, labelDoStatus, labelDoTipoServico } from "@/app/lib/tipo-servico";
+import {
+  corDoTipoServico,
+  labelDoStatus,
+  labelDoTipoServico,
+  nomeDoResponsavel,
+} from "@/app/lib/tipo-servico";
 import type { ServicoDoDia } from "./types";
 
 export function ServicoCard({ servico }: { servico: ServicoDoDia }) {
@@ -36,7 +41,7 @@ export function ServicoCard({ servico }: { servico: ServicoDoDia }) {
         </span>
         <span className="text-xs text-zinc-400 dark:text-zinc-500">•</span>
         <span className="text-xs text-zinc-500 dark:text-zinc-400">
-          {servico.responsavel.nome}
+          {nomeDoResponsavel(servico.responsavel)}
         </span>
       </div>
     </Link>

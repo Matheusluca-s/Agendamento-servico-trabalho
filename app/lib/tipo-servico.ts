@@ -69,3 +69,8 @@ export function labelDoStatus(status: string): string {
 // (legado — não é mais um destino de transição, mas serviços antigos podem
 // ter esse valor gravado). Usado pro filtro da visão geral de serviços.
 export const TODOS_STATUS = ["agendado", "em_andamento", "concluido", "cancelado"] as const;
+
+// Responsável é opcional — serviço pode não ter ninguém definido ainda.
+export function nomeDoResponsavel(responsavel: { nome: string } | null): string {
+  return responsavel?.nome ?? "Sem responsável";
+}

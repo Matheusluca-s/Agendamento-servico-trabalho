@@ -39,8 +39,8 @@ model Servico {
   tipoServico   String   // "instalacao" | "manutencao" | "limpeza" | "outro"
   status        String   @default("agendado") // agendado, em_andamento, concluido, cancelado
   observacoes   String?
-  responsavelId String
-  responsavel   Usuario  @relation(fields: [responsavelId], references: [id])
+  responsavelId String? // opcional — serviço pode ser criado sem responsável definido
+  responsavel   Usuario? @relation(fields: [responsavelId], references: [id])
   criadoEm      DateTime @default(now())
   concluidoEm   DateTime?
 }

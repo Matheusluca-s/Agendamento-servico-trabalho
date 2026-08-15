@@ -38,12 +38,15 @@ export async function criarServico(
     return { erro: "Selecione uma data válida." };
   }
 
-  const responsavel = await prisma.usuario.findUnique({
-    where: { id: responsavelId },
-    select: { id: true },
-  });
-  if (!responsavel) {
-    return { erro: "Funcionário responsável inválido." };
+  // Responsável é opcional — só valida se algum foi selecionado.
+  if (responsavelId) {
+    const responsavel = await prisma.usuario.findUnique({
+      where: { id: responsavelId },
+      select: { id: true, ativo: true },
+    });
+    if (!responsavel || !responsavel.ativo) {
+      return { erro: "Funcionário responsável inválido." };
+    }
   }
 
   await prisma.servico.create({
@@ -53,7 +56,10 @@ export async function criarServico(
       data: dataServico,
       horario,
       tipoServico,
-      responsavelId,
+      // Omite a chave por completo quando vazio — passar `null` direto
+      // confunde a resolução do input "checked"/"unchecked" do Prisma pra
+      // uma FK opcional (ele passa a exigir o objeto de relação inteiro).
+      ...(responsavelId ? { responsavelId } : {}),
       observacoes: observacoes || null,
     },
   });
@@ -89,13 +95,14 @@ export async function mudarStatusServico(
     // Ausente (null) se o campo não vier no formData — normaliza pra
     // string vazia, já que é opcional no schema.
     observacoes: formData.get("observacoes") ?? "",
+    responsavelId: formData.get("responsavelId") ?? "",
   });
 
   if (!validatedFields.success) {
     return { erro: validatedFields.error.issues[0]?.message ?? "Dados inválidos." };
   }
 
-  const { servicoId, novoStatus, observacoes } = validatedFields.data;
+  const { servicoId, novoStatus, observacoes, responsavelId } = validatedFields.data;
 
   const servico = await prisma.servico.findUnique({
     where: { id: servicoId },
@@ -112,6 +119,21 @@ export async function mudarStatusServico(
     return { erro: "Essa mudança de status não é permitida." };
   }
 
+  // "Quem realizou o serviço" só se aplica na conclusão — ignora esse
+  // campo silenciosamente pra qualquer outra transição, mesmo que um
+  // cliente malicioso tente enviá-lo junto de "cancelado".
+  let novoResponsavelId: string | undefined;
+  if (novoStatus === "concluido" && responsavelId) {
+    const responsavel = await prisma.usuario.findUnique({
+      where: { id: responsavelId },
+      select: { id: true, ativo: true },
+    });
+    if (!responsavel || !responsavel.ativo) {
+      return { erro: "Funcionário selecionado é inválido." };
+    }
+    novoResponsavelId = responsavelId;
+  }
+
   await prisma.servico.update({
     where: { id: servicoId },
     data: {
@@ -119,6 +141,7 @@ export async function mudarStatusServico(
       // Opcional: se preenchido, substitui o valor atual (não acumula
       // histórico); se vazio, mantém as observações que já existiam.
       ...(observacoes ? { observacoes } : {}),
+      ...(novoResponsavelId ? { responsavelId: novoResponsavelId } : {}),
       ...(novoStatus === "concluido" ? { concluidoEm: new Date() } : {}),
     },
   });

@@ -4,7 +4,12 @@ import Link from "next/link";
 import { useActionState, useState } from "react";
 import { excluirServico, type ExcluirServicoState } from "@/app/actions/servicos";
 import { formatDayNumber, formatMonthYear } from "@/app/lib/date-utils";
-import { corDoTipoServico, labelDoStatus, labelDoTipoServico } from "@/app/lib/tipo-servico";
+import {
+  corDoTipoServico,
+  labelDoStatus,
+  labelDoTipoServico,
+  nomeDoResponsavel,
+} from "@/app/lib/tipo-servico";
 
 export type ServicoLinhaData = {
   id: string;
@@ -13,7 +18,7 @@ export type ServicoLinhaData = {
   horario: string;
   tipoServico: string;
   status: string;
-  responsavel: { nome: string };
+  responsavel: { nome: string } | null;
 };
 
 export function ServicoLinha({ servico }: { servico: ServicoLinhaData }) {
@@ -90,7 +95,7 @@ export function ServicoLinha({ servico }: { servico: ServicoLinhaData }) {
           </span>
           <span className="text-xs text-zinc-400 dark:text-zinc-500">•</span>
           <span className="text-xs text-zinc-500 dark:text-zinc-400">
-            {servico.responsavel.nome}
+            {nomeDoResponsavel(servico.responsavel)}
           </span>
         </div>
       </Link>

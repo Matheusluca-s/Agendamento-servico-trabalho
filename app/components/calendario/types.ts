@@ -5,5 +5,5 @@ export type ServicoDoDia = {
   tipoServico: string;
   status: string;
   data: Date;
-  responsavel: { nome: string };
+  responsavel: { nome: string } | null;
 };

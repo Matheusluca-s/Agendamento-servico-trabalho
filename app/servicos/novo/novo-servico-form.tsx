@@ -137,10 +137,10 @@ export function NovoServicoForm({
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="responsavelId" className={labelClass}>
-          Funcionário responsável
+          Funcionário responsável (opcional)
         </label>
-        <select id="responsavelId" name="responsavelId" required className={inputClass}>
-          <option value="">Selecione...</option>
+        <select id="responsavelId" name="responsavelId" defaultValue="" className={inputClass}>
+          <option value="">Não definido</option>
           {usuarios.map((usuario) => (
             <option key={usuario.id} value={usuario.id}>
               {usuario.nome}

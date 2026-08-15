@@ -32,9 +32,11 @@ const CONFIRMAR_LABEL: Record<string, string> = {
 export function MudarStatusForm({
   servicoId,
   statusAtual,
+  funcionariosAtivos,
 }: {
   servicoId: string;
   statusAtual: string;
+  funcionariosAtivos: { id: string; nome: string }[];
 }) {
   const [state, formAction, pending] = useActionState<MudarStatusState, FormData>(
     mudarStatusServico,
@@ -67,6 +69,29 @@ export function MudarStatusForm({
         <form action={formAction} className="flex flex-col gap-3">
           <input type="hidden" name="servicoId" value={servicoId} />
           <input type="hidden" name="novoStatus" value={statusSelecionado} />
+          {statusSelecionado === "concluido" && (
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="responsavelId"
+                className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
+              >
+                Quem realizou o serviço (opcional)
+              </label>
+              <select
+                id="responsavelId"
+                name="responsavelId"
+                defaultValue=""
+                className="h-12 rounded-lg border border-zinc-300 bg-white px-3 text-base text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-300 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:focus:ring-zinc-700"
+              >
+                <option value="">Manter responsável atual</option>
+                {funcionariosAtivos.map((funcionario) => (
+                  <option key={funcionario.id} value={funcionario.id}>
+                    {funcionario.nome}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="flex flex-col gap-1.5">
             <label
               htmlFor="observacoes"
