@@ -3,6 +3,11 @@ import { requireAdmin } from "@/app/lib/dal";
 import { prisma } from "@/app/lib/db";
 import { NovoFuncionarioForm } from "./novo-funcionario-form";
 
+// Depende de sessão e consulta o banco — não pode ser renderizada
+// estaticamente no build (variáveis de ambiente de runtime, como
+// DATABASE_URL, ainda não estão disponíveis nesse momento).
+export const dynamic = "force-dynamic";
+
 export default async function FuncionariosPage() {
   await requireAdmin();
 

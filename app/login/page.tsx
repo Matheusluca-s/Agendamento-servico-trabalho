@@ -3,6 +3,11 @@ import { prisma } from "@/app/lib/db";
 import { getSession } from "@/app/lib/session";
 import { LoginForm } from "./login-form";
 
+// Consulta o banco pra listar os usuários — não pode ser renderizada
+// estaticamente no build (variáveis de ambiente de runtime, como
+// DATABASE_URL, ainda não estão disponíveis nesse momento).
+export const dynamic = "force-dynamic";
+
 export default async function LoginPage() {
   const session = await getSession();
   if (session) {

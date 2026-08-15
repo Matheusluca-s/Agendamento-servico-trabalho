@@ -29,6 +29,11 @@ const SELECT_SERVICO = {
   responsavel: { select: { nome: true } },
 } as const;
 
+// Depende de sessão e consulta o banco — não pode ser renderizada
+// estaticamente no build (variáveis de ambiente de runtime, como
+// DATABASE_URL, ainda não estão disponíveis nesse momento).
+export const dynamic = "force-dynamic";
+
 function buildHref(params: Record<string, string | undefined>): string {
   const usp = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
