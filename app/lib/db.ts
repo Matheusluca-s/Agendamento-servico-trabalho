@@ -26,9 +26,23 @@ function getDatabaseUrl(): string {
     // que a variável não foi configurada — vira um P1001 confuso em
     // produção ("can't reach database server at 127.0.0.1:5432") que
     // esconde a causa real.
+    //
+    // DEBUG TEMPORÁRIO — remover o bloco de diagnóstico abaixo depois de
+    // confirmar a causa nos logs do Vercel. Nunca inclui valores, só
+    // existência, tamanho e os nomes das variáveis de ambiente candidatas.
+    const chavesRelacionadas = Object.keys(process.env).filter(
+      (chave) => chave.includes("DATABASE") || chave.includes("DIRECT"),
+    );
+    const diagnostico =
+      `DATABASE_URL existe: ${Boolean(process.env.DATABASE_URL)}; ` +
+      `DATABASE_URL length: ${process.env.DATABASE_URL?.length ?? "n/a"}; ` +
+      `DIRECT_URL existe: ${Boolean(process.env.DIRECT_URL)}; ` +
+      `DIRECT_URL length: ${process.env.DIRECT_URL?.length ?? "n/a"}; ` +
+      `chaves candidatas: [${chavesRelacionadas.join(", ")}]`;
+
     throw new Error(
       "DATABASE_URL não configurada. Defina essa variável de ambiente " +
-        "(conexão pooled do Postgres) antes de iniciar a aplicação.",
+        `(conexão pooled do Postgres) antes de iniciar a aplicação. (${diagnostico})`,
     );
   }
   return url;
