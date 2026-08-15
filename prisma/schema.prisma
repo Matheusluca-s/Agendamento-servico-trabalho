@@ -1,0 +1,37 @@
+// Prisma schema — ver CLAUDE.md para o contexto completo do projeto.
+// Aprenda mais em: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Usuario {
+  id               String    @id @default(cuid())
+  nome             String
+  pinHash          String // hash bcrypt, nunca texto puro
+  tipo             String // "admin" ou "funcionario"
+  tentativasFalhas Int       @default(0) // tentativas de PIN erradas seguidas
+  bloqueadoAte     DateTime? // se no futuro, login bloqueado por força bruta
+  criadoEm         DateTime  @default(now())
+  servicos         Servico[]
+}
+
+model Servico {
+  id            String    @id @default(cuid())
+  local         String
+  endereco      String?
+  data          DateTime
+  horario       String
+  tipoServico   String // "instalacao" | "manutencao" | "limpeza" | "outro"
+  status        String    @default("agendado") // agendado, em_andamento, concluido, cancelado
+  observacoes   String?
+  responsavelId String
+  responsavel   Usuario   @relation(fields: [responsavelId], references: [id])
+  criadoEm      DateTime  @default(now())
+  concluidoEm   DateTime?
+}
