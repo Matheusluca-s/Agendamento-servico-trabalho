@@ -4,9 +4,11 @@ import { useActionState, useState } from "react";
 import {
   alternarAtivoFuncionario,
   editarFuncionario,
+  excluirFuncionario,
   resetarPinFuncionario,
   type AlternarAtivoState,
   type EditarFuncionarioState,
+  type ExcluirFuncionarioState,
   type ResetarPinState,
 } from "@/app/actions/funcionarios";
 
@@ -17,7 +19,7 @@ type Usuario = {
   ativo: boolean;
 };
 
-type Modo = "visualizar" | "editar-nome" | "resetar-pin";
+type Modo = "visualizar" | "editar-nome" | "resetar-pin" | "excluir";
 
 const inputClass =
   "h-12 rounded-lg border border-zinc-300 bg-white px-3 text-base text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-300 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:focus:ring-zinc-700";
@@ -26,8 +28,15 @@ const botaoSecundario =
 const botaoPrimario =
   "h-10 flex-1 rounded-lg bg-zinc-900 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-60 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200";
 
-export function FuncionarioRow({ usuario }: { usuario: Usuario }) {
+export function FuncionarioRow({
+  usuario,
+  usuarioAtualId,
+}: {
+  usuario: Usuario;
+  usuarioAtualId: string;
+}) {
   const [modo, setModo] = useState<Modo>("visualizar");
+  const ehContaLogada = usuario.id === usuarioAtualId;
 
   // Volta pro modo "visualizar" assim que a action retorna sucesso — o
   // efeito colateral acontece no próprio encadeamento async do dispatch,
@@ -53,6 +62,10 @@ export function FuncionarioRow({ usuario }: { usuario: Usuario }) {
     AlternarAtivoState,
     FormData
   >(alternarAtivoFuncionario, undefined);
+  const [estadoExclusao, acaoExclusao, pendingExclusao] = useActionState<
+    ExcluirFuncionarioState,
+    FormData
+  >(excluirFuncionario, undefined);
 
   return (
     <li className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
@@ -172,6 +185,33 @@ export function FuncionarioRow({ usuario }: { usuario: Usuario }) {
             </button>
           </div>
         </form>
+      ) : modo === "excluir" ? (
+        <form action={acaoExclusao} className="mt-3 flex flex-col gap-3">
+          <input type="hidden" name="usuarioId" value={usuario.id} />
+          <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-400">
+            Excluir {usuario.nome} permanentemente? Essa ação não pode ser desfeita.
+          </p>
+          {estadoExclusao && "erro" in estadoExclusao && (
+            <p
+              role="alert"
+              className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-400"
+            >
+              {estadoExclusao.erro}
+            </p>
+          )}
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setModo("visualizar")} className={botaoSecundario}>
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={pendingExclusao}
+              className="h-10 flex-1 rounded-lg bg-red-600 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-60"
+            >
+              {pendingExclusao ? "Excluindo..." : "Confirmar exclusão"}
+            </button>
+          </div>
+        </form>
       ) : (
         <div className="mt-3 flex flex-col gap-2">
           {estadoAtivo && "erro" in estadoAtivo && (
@@ -212,6 +252,15 @@ export function FuncionarioRow({ usuario }: { usuario: Usuario }) {
                   {pendingAtivo ? "Salvando..." : usuario.ativo ? "Desativar" : "Reativar"}
                 </button>
               </form>
+            )}
+            {!ehContaLogada && (
+              <button
+                type="button"
+                onClick={() => setModo("excluir")}
+                className="h-10 flex-1 rounded-lg border-2 border-red-300 px-3 text-sm font-medium text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950"
+              >
+                Excluir
+              </button>
             )}
           </div>
         </div>

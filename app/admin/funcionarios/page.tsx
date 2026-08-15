@@ -1,8 +1,11 @@
+import { requireAdmin } from "@/app/lib/dal";
 import { prisma } from "@/app/lib/db";
 import { FuncionarioRow } from "./funcionario-row";
 import { NovoFuncionarioForm } from "./novo-funcionario-form";
 
 export default async function AdminFuncionariosPage() {
+  const admin = await requireAdmin();
+
   const usuarios = await prisma.usuario.findMany({
     select: { id: true, nome: true, tipo: true, ativo: true },
     orderBy: [{ ativo: "desc" }, { criadoEm: "asc" }],
@@ -23,7 +26,7 @@ export default async function AdminFuncionariosPage() {
         </h2>
         <ul className="flex flex-col gap-2">
           {usuarios.map((usuario) => (
-            <FuncionarioRow key={usuario.id} usuario={usuario} />
+            <FuncionarioRow key={usuario.id} usuario={usuario} usuarioAtualId={admin.id} />
           ))}
         </ul>
       </div>

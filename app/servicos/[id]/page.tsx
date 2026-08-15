@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { verifySession } from "@/app/lib/dal";
+import { getUsuarioAtual } from "@/app/lib/dal";
 import { formatDataHora, formatDiaCompleto } from "@/app/lib/date-utils";
 import { prisma } from "@/app/lib/db";
 import { corDoTipoServico, labelDoStatus, labelDoTipoServico } from "@/app/lib/tipo-servico";
+import { ExcluirServicoForm } from "./excluir-servico-form";
 import { MudarStatusForm } from "./mudar-status-form";
 
 // Depende de sessão e consulta o banco — não pode ser renderizada
@@ -16,7 +17,7 @@ export default async function ServicoDetalhePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await verifySession();
+  const usuario = await getUsuarioAtual();
   const { id } = await params;
 
   const servico = await prisma.servico.findUnique({
@@ -114,6 +115,10 @@ export default async function ServicoDetalhePage({
         </div>
 
         <MudarStatusForm servicoId={servico.id} statusAtual={servico.status} />
+
+        {usuario.tipo === "admin" && (
+          <ExcluirServicoForm servicoId={servico.id} local={servico.local} />
+        )}
       </div>
     </div>
   );

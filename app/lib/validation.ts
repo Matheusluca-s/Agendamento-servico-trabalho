@@ -59,6 +59,12 @@ export const AlternarAtivoSchema = z.object({
 
 export type AlternarAtivoInput = z.infer<typeof AlternarAtivoSchema>;
 
+export const ExcluirFuncionarioSchema = z.object({
+  usuarioId: z.string().min(1, { error: "Funcionário inválido." }),
+});
+
+export type ExcluirFuncionarioInput = z.infer<typeof ExcluirFuncionarioSchema>;
+
 export const NovoServicoSchema = z.object({
   local: z
     .string()
@@ -107,6 +113,12 @@ export const MudarStatusSchema = z.object({
 });
 
 export type MudarStatusInput = z.infer<typeof MudarStatusSchema>;
+
+export const ExcluirServicoSchema = z.object({
+  servicoId: z.string().min(1, { error: "Serviço inválido." }),
+});
+
+export type ExcluirServicoInput = z.infer<typeof ExcluirServicoSchema>;
 
 // Filtros da visão geral de serviços (admin) — vêm da query string, então
 // qualquer valor fora do esperado é descartado (cai pra "sem filtro") em

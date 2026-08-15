@@ -2,10 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { verifySession } from "@/app/lib/dal";
+import { requireAdmin, verifySession } from "@/app/lib/dal";
 import { parseDateKey, toDateKey } from "@/app/lib/date-utils";
 import { prisma } from "@/app/lib/db";
-import { MudarStatusSchema, NovoServicoSchema } from "@/app/lib/validation";
+import { ExcluirServicoSchema, MudarStatusSchema, NovoServicoSchema } from "@/app/lib/validation";
 
 export type NovoServicoState = { erro: string } | undefined;
 
@@ -126,4 +126,41 @@ export async function mudarStatusServico(
   const diaKey = toDateKey(servico.data);
   revalidatePath("/");
   redirect(`/?view=mes&data=${diaKey}&dia=${diaKey}`);
+}
+
+export type ExcluirServicoState = { erro: string } | undefined;
+
+export async function excluirServico(
+  _prevState: ExcluirServicoState,
+  formData: FormData,
+): Promise<ExcluirServicoState> {
+  // Só admin pode excluir serviços (diferente de criar/mudar status, que
+  // qualquer usuário logado pode fazer).
+  await requireAdmin();
+
+  const validatedFields = ExcluirServicoSchema.safeParse({
+    servicoId: formData.get("servicoId"),
+  });
+
+  if (!validatedFields.success) {
+    return { erro: validatedFields.error.issues[0]?.message ?? "Dados inválidos." };
+  }
+
+  const { servicoId } = validatedFields.data;
+
+  const servico = await prisma.servico.findUnique({
+    where: { id: servicoId },
+    select: { id: true },
+  });
+  if (!servico) {
+    return { erro: "Serviço não encontrado." };
+  }
+
+  // Sem bloqueio de vínculo aqui — diferente de excluir funcionário, não
+  // existe nada dependente de um serviço.
+  await prisma.servico.delete({ where: { id: servicoId } });
+
+  revalidatePath("/");
+  revalidatePath("/admin/servicos");
+  redirect("/admin/servicos");
 }

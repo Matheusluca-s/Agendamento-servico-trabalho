@@ -7,6 +7,7 @@ import { prisma } from "@/app/lib/db";
 import {
   AlternarAtivoSchema,
   EditarFuncionarioSchema,
+  ExcluirFuncionarioSchema,
   NovoFuncionarioSchema,
   ResetarPinSchema,
 } from "@/app/lib/validation";
@@ -153,5 +154,55 @@ export async function alternarAtivoFuncionario(
 
   revalidatePath("/admin/funcionarios");
   revalidatePath("/servicos/novo");
+  return undefined;
+}
+
+export type ExcluirFuncionarioState = { erro: string } | undefined;
+
+export async function excluirFuncionario(
+  _prevState: ExcluirFuncionarioState,
+  formData: FormData,
+): Promise<ExcluirFuncionarioState> {
+  const admin = await requireAdmin();
+
+  const validatedFields = ExcluirFuncionarioSchema.safeParse({
+    usuarioId: formData.get("usuarioId"),
+  });
+
+  if (!validatedFields.success) {
+    return { erro: validatedFields.error.issues[0]?.message ?? "Dados inválidos." };
+  }
+
+  const { usuarioId } = validatedFields.data;
+
+  // Nunca deixa a própria conta logada se auto-excluir — checagem no
+  // servidor, não só escondendo o botão na tela.
+  if (usuarioId === admin.id) {
+    return { erro: "Você não pode excluir a própria conta." };
+  }
+
+  const usuario = await prisma.usuario.findUnique({
+    where: { id: usuarioId },
+    select: { id: true },
+  });
+  if (!usuario) {
+    return { erro: "Funcionário não encontrado." };
+  }
+
+  // Serviço tem FK obrigatória pra Usuario — excluir alguém com histórico
+  // vinculado quebraria os registros antigos. "Desativar" é o caminho pra
+  // esse caso.
+  const totalServicos = await prisma.servico.count({
+    where: { responsavelId: usuarioId },
+  });
+  if (totalServicos > 0) {
+    return {
+      erro: `Esse funcionário tem ${totalServicos} serviço(s) vinculado(s) e não pode ser excluído. Use "Desativar" para removê-lo das opções sem perder o histórico.`,
+    };
+  }
+
+  await prisma.usuario.delete({ where: { id: usuarioId } });
+
+  revalidatePath("/admin/funcionarios");
   return undefined;
 }
