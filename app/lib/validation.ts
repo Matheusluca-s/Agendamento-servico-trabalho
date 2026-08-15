@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { TIPOS_SERVICO } from "@/app/lib/tipo-servico";
+import { TIPOS_SERVICO, TODOS_STATUS } from "@/app/lib/tipo-servico";
 
 export const LoginSchema = z.object({
   usuarioId: z.string().min(1, { error: "Selecione um usuário." }),
@@ -26,6 +26,38 @@ export const NovoFuncionarioSchema = z
   });
 
 export type NovoFuncionarioInput = z.infer<typeof NovoFuncionarioSchema>;
+
+export const EditarFuncionarioSchema = z.object({
+  usuarioId: z.string().min(1, { error: "Funcionário inválido." }),
+  nome: z
+    .string()
+    .trim()
+    .min(1, { error: "O nome é obrigatório." })
+    .max(100, { error: "Nome muito longo." }),
+});
+
+export type EditarFuncionarioInput = z.infer<typeof EditarFuncionarioSchema>;
+
+export const ResetarPinSchema = z
+  .object({
+    usuarioId: z.string().min(1, { error: "Funcionário inválido." }),
+    novoPin: z.string().regex(/^\d{4}$/, { error: "O PIN deve ter 4 dígitos." }),
+    novoPinConfirmacao: z
+      .string()
+      .regex(/^\d{4}$/, { error: "Confirme o PIN com 4 dígitos." }),
+  })
+  .refine((data) => data.novoPin === data.novoPinConfirmacao, {
+    error: "Os PINs não coincidem.",
+    path: ["novoPinConfirmacao"],
+  });
+
+export type ResetarPinInput = z.infer<typeof ResetarPinSchema>;
+
+export const AlternarAtivoSchema = z.object({
+  usuarioId: z.string().min(1, { error: "Funcionário inválido." }),
+});
+
+export type AlternarAtivoInput = z.infer<typeof AlternarAtivoSchema>;
 
 export const NovoServicoSchema = z.object({
   local: z
@@ -75,3 +107,14 @@ export const MudarStatusSchema = z.object({
 });
 
 export type MudarStatusInput = z.infer<typeof MudarStatusSchema>;
+
+// Filtros da visão geral de serviços (admin) — vêm da query string, então
+// qualquer valor fora do esperado é descartado (cai pra "sem filtro") em
+// vez de quebrar a página.
+export const FiltroServicosSchema = z.object({
+  status: z.enum(TODOS_STATUS).optional(),
+  tipoServico: z.enum(TIPOS_SERVICO).optional(),
+  responsavelId: z.string().min(1).optional(),
+});
+
+export type FiltroServicosInput = z.infer<typeof FiltroServicosSchema>;

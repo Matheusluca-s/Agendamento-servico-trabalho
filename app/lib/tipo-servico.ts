@@ -64,3 +64,8 @@ export const STATUS_LABEL: Record<string, string> = {
 export function labelDoStatus(status: string): string {
   return STATUS_LABEL[status] ?? status;
 }
+
+// Todos os status possíveis de aparecer num serviço, incluindo "em_andamento"
+// (legado — não é mais um destino de transição, mas serviços antigos podem
+// ter esse valor gravado). Usado pro filtro da visão geral de serviços.
+export const TODOS_STATUS = ["agendado", "em_andamento", "concluido", "cancelado"] as const;

@@ -19,6 +19,7 @@ export default async function NovoServicoPage({
   const dataInicial = toDateKey(parseDateKey(data) ?? hojeBrasil());
 
   const usuarios = await prisma.usuario.findMany({
+    where: { ativo: true },
     select: { id: true, nome: true },
     orderBy: { nome: "asc" },
   });

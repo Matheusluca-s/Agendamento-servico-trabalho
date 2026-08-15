@@ -152,10 +152,10 @@ export default async function Home({
         <div className="flex items-center gap-2">
           {usuario.tipo === "admin" && (
             <Link
-              href="/funcionarios"
+              href="/admin"
               className="flex h-9 items-center rounded-lg border border-zinc-300 px-3 text-xs font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
             >
-              Funcionários
+              Admin
             </Link>
           )}
           <form action={logout}>

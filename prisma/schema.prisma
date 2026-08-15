@@ -15,6 +15,7 @@ model Usuario {
   nome             String
   pinHash          String // hash bcrypt, nunca texto puro
   tipo             String // "admin" ou "funcionario"
+  ativo            Boolean   @default(true) // inativo = some do dropdown de responsável, mas mantém histórico
   tentativasFalhas Int       @default(0) // tentativas de PIN erradas seguidas
   bloqueadoAte     DateTime? // se no futuro, login bloqueado por força bruta
   criadoEm         DateTime  @default(now())

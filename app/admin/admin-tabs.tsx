@@ -1,0 +1,31 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+export function AdminTabs() {
+  const pathname = usePathname();
+
+  const base =
+    "flex h-10 flex-1 items-center justify-center rounded-md text-sm font-medium transition-colors";
+  const ativo = "bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-zinc-50";
+  const inativo =
+    "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200";
+
+  return (
+    <div className="flex gap-1 rounded-lg bg-zinc-100 p-1 dark:bg-zinc-900">
+      <Link
+        href="/admin/funcionarios"
+        className={`${base} ${pathname.startsWith("/admin/funcionarios") ? ativo : inativo}`}
+      >
+        Funcionários
+      </Link>
+      <Link
+        href="/admin/servicos"
+        className={`${base} ${pathname.startsWith("/admin/servicos") ? ativo : inativo}`}
+      >
+        Serviços
+      </Link>
+    </div>
+  );
+}
