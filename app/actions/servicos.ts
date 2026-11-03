@@ -2,11 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { ServicoService } from "@/app/application/servico-service";
+import { PrismaServicoRepository } from "@/app/infra/prisma-servico-repository";
 import { requireAdmin, verifySession } from "@/app/lib/dal";
-import { parseDateKey, toDateKey } from "@/app/lib/date-utils";
-import { Servico } from "@/app/domain/servico";
+import { toDateKey } from "@/app/lib/date-utils";
 import { prisma } from "@/app/lib/db";
-import { ExcluirServicoSchema, MudarStatusSchema, NovoServicoSchema } from "@/app/lib/validation";
+import { ExcluirServicoSchema } from "@/app/lib/validation";
+
+const servicoService = new ServicoService(new PrismaServicoRepository());
 
 export type NovoServicoState = { erro: string } | undefined;
 
@@ -17,7 +20,7 @@ export async function criarServico(
   // Qualquer usuário logado (admin ou funcionário) pode criar serviços.
   await verifySession();
 
-  const validatedFields = NovoServicoSchema.safeParse({
+  const resultado = await servicoService.cadastrar({
     local: formData.get("local"),
     endereco: formData.get("endereco"),
     data: formData.get("data"),
@@ -27,45 +30,11 @@ export async function criarServico(
     observacoes: formData.get("observacoes"),
   });
 
-  if (!validatedFields.success) {
-    return { erro: validatedFields.error.issues[0]?.message ?? "Dados inválidos." };
+  if (!resultado.ok) {
+    return { erro: resultado.erro };
   }
 
-  const { local, endereco, data, horario, tipoServico, responsavelId, observacoes } =
-    validatedFields.data;
-
-  const dataServico = parseDateKey(data);
-  if (!dataServico) {
-    return { erro: "Selecione uma data válida." };
-  }
-
-  // Responsável é opcional — só valida se algum foi selecionado.
-  if (responsavelId) {
-    const responsavel = await prisma.usuario.findUnique({
-      where: { id: responsavelId },
-      select: { id: true, ativo: true },
-    });
-    if (!responsavel || !responsavel.ativo) {
-      return { erro: "Funcionário responsável inválido." };
-    }
-  }
-
-  await prisma.servico.create({
-    data: {
-      local,
-      endereco: endereco || null,
-      data: dataServico,
-      horario,
-      tipoServico,
-      // Omite a chave por completo quando vazio — passar `null` direto
-      // confunde a resolução do input "checked"/"unchecked" do Prisma pra
-      // uma FK opcional (ele passa a exigir o objeto de relação inteiro).
-      ...(responsavelId ? { responsavelId } : {}),
-      observacoes: observacoes || null,
-    },
-  });
-
-  const diaKey = toDateKey(dataServico);
+  const diaKey = toDateKey(resultado.data);
   revalidatePath("/");
   redirect(`/?view=mes&data=${diaKey}&dia=${diaKey}`);
 }
@@ -78,7 +47,7 @@ export async function mudarStatusServico(
 ): Promise<MudarStatusState> {
   await verifySession();
 
-  const validatedFields = MudarStatusSchema.safeParse({
+  const resultado = await servicoService.mudarStatus({
     servicoId: formData.get("servicoId"),
     novoStatus: formData.get("novoStatus"),
     // Ausente (null) se o campo não vier no formData — normaliza pra
@@ -87,63 +56,11 @@ export async function mudarStatusServico(
     responsavelId: formData.get("responsavelId") ?? "",
   });
 
-  if (!validatedFields.success) {
-    return { erro: validatedFields.error.issues[0]?.message ?? "Dados inválidos." };
+  if (!resultado.ok) {
+    return { erro: resultado.erro };
   }
 
-  const { servicoId, novoStatus, observacoes, responsavelId } = validatedFields.data;
-
-  const registro = await prisma.servico.findUnique({
-    where: { id: servicoId },
-    select: { status: true, data: true, observacoes: true, responsavelId: true, concluidoEm: true },
-  });
-
-  if (!registro) {
-    return { erro: "Serviço não encontrado." };
-  }
-
-  // Checagem da transição sempre no servidor — nunca confia no botão que o
-  // cliente conseguiu clicar.
-  const servico = new Servico(registro);
-  if (!servico.podeMudarPara(novoStatus)) {
-    return { erro: "Essa mudança de status não é permitida." };
-  }
-
-  // "Quem realizou o serviço" só se aplica na conclusão — ignora esse
-  // campo silenciosamente pra qualquer outra transição, mesmo que um
-  // cliente malicioso tente enviá-lo junto de "cancelado".
-  let novoResponsavelId: string | undefined;
-  if (novoStatus === "concluido" && responsavelId) {
-    const responsavel = await prisma.usuario.findUnique({
-      where: { id: responsavelId },
-      select: { id: true, ativo: true },
-    });
-    if (!responsavel || !responsavel.ativo) {
-      return { erro: "Funcionário selecionado é inválido." };
-    }
-    novoResponsavelId = responsavelId;
-  }
-
-  if (novoStatus === "concluido") {
-    servico.concluir(observacoes || undefined, novoResponsavelId, new Date());
-  } else if (novoStatus === "cancelado") {
-    servico.cancelar(observacoes || undefined);
-  }
-
-  await prisma.servico.update({
-    where: { id: servicoId },
-    data: {
-      status: servico.status,
-      // Só grava os campos que a regra de domínio de fato alterou.
-      ...(observacoes ? { observacoes: servico.observacoes } : {}),
-      ...(novoResponsavelId ? { responsavelId: servico.responsavelId } : {}),
-      ...(servico.concluidoEm !== registro.concluidoEm
-        ? { concluidoEm: servico.concluidoEm }
-        : {}),
-    },
-  });
-
-  const diaKey = toDateKey(registro.data);
+  const diaKey = toDateKey(resultado.data);
   revalidatePath("/");
   redirect(`/?view=mes&data=${diaKey}&dia=${diaKey}`);
 }
