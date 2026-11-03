@@ -29,7 +29,7 @@ model Servico {
   data          DateTime
   horario       String
   tipoServico   String // "instalacao" | "manutencao" | "limpeza" | "outro"
-  status        String    @default("agendado") // agendado, em_andamento, concluido, cancelado
+  status        String    @default("agendado") // agendado, concluido, cancelado (em_andamento só em dados legados)
   observacoes   String?
   responsavelId String?
   responsavel   Usuario?  @relation(fields: [responsavelId], references: [id])
