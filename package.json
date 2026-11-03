@@ -12,7 +12,8 @@
     "db:seed-servicos": "tsx prisma/seed-servicos.ts",
     "test": "vitest run",
     "test:unit": "vitest run tests/unit",
-    "test:integration": "vitest run tests/integration"
+    "test:integration": "vitest run tests/integration",
+    "demo": "tsx scripts/demo.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",

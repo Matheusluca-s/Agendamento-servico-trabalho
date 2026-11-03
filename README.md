@@ -162,6 +162,28 @@ ao banco (`app/lib/db.ts`) ou a camada `app/infra/`. Basta ter rodado `npm insta
   - responsável inativo é recusado, no cadastro e na conclusão (RN03);
   - mudar o status de um serviço já concluído retorna "Essa mudança de status não é permitida."
 
+## Demonstração pelo terminal
+
+Para ver a funcionalidade "cadastrar e concluir serviço" funcionando sem configurar banco de
+dados nem `.env`, rode (depois do `npm install`):
+
+```bash
+npm run demo
+```
+
+O script `scripts/demo.ts` usa o mesmo `ServicoService` da aplicação, mas com o repositório em
+memória dos testes (`tests/support/InMemoryServicoRepository.ts`) no lugar do Prisma. Ele mostra
+cinco cenários em sequência:
+
+1. cadastro de um serviço válido (sucesso);
+2. conclusão do serviço informando quem fez, exibindo status, data de conclusão e observação
+   (sucesso);
+3. tentativa de mudar o status do serviço já concluído (erro esperado, RN01);
+4. tentativa de cadastrar com horário inválido `25:00` (erro esperado, validação Zod);
+5. simulação de 5 PINs errados seguidos com a classe `BloqueioLogin` (erro esperado, RN02).
+
+Se algum cenário não se comportar como esperado, o script termina com erro (código de saída 1).
+
 ## Variáveis de ambiente
 
 Definidas em `.env` localmente (veja `.env.example`) e no painel do Vercel (Project Settings →

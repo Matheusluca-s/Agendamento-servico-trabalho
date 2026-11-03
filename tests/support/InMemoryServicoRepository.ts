@@ -16,9 +16,9 @@ export const USUARIO_INATIVO_ID = "usuario-inativo";
 export class InMemoryServicoRepository implements ServicoRepository {
   readonly servicos = new Map<string, ServicoArmazenado>();
 
-  readonly usuarios = new Map<string, { id: string; ativo: boolean }>([
-    [USUARIO_ATIVO_ID, { id: USUARIO_ATIVO_ID, ativo: true }],
-    [USUARIO_INATIVO_ID, { id: USUARIO_INATIVO_ID, ativo: false }],
+  readonly usuarios = new Map<string, { id: string; nome: string; ativo: boolean }>([
+    [USUARIO_ATIVO_ID, { id: USUARIO_ATIVO_ID, nome: "Carlos", ativo: true }],
+    [USUARIO_INATIVO_ID, { id: USUARIO_INATIVO_ID, nome: "Pedro", ativo: false }],
   ]);
 
   private proximoId = 1;

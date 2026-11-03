@@ -4,7 +4,7 @@ import {
   InMemoryServicoRepository,
   USUARIO_ATIVO_ID,
   USUARIO_INATIVO_ID,
-} from "./InMemoryServicoRepository";
+} from "../support/InMemoryServicoRepository";
 
 // Fluxo "cadastrar e concluir serviço" de ponta a ponta:
 // validação Zod -> ServicoService -> domínio (Servico) -> repositório.
