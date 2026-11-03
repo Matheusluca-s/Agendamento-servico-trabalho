@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin, verifySession } from "@/app/lib/dal";
 import { parseDateKey, toDateKey } from "@/app/lib/date-utils";
+import { Servico } from "@/app/domain/servico";
 import { prisma } from "@/app/lib/db";
 import { ExcluirServicoSchema, MudarStatusSchema, NovoServicoSchema } from "@/app/lib/validation";
 
@@ -71,18 +72,6 @@ export async function criarServico(
 
 export type MudarStatusState = { erro: string } | undefined;
 
-// Fluxo de status: agendado -> concluido, com cancelado possível a
-// qualquer momento a partir de agendado. "em_andamento" era uma etapa
-// intermediária do fluxo antigo — não é mais um destino válido, mas
-// serviços antigos com esse status ainda podem ser concluídos ou
-// cancelados normalmente.
-const TRANSICOES_VALIDAS: Record<string, readonly string[]> = {
-  agendado: ["concluido", "cancelado"],
-  em_andamento: ["concluido", "cancelado"],
-  concluido: [],
-  cancelado: [],
-};
-
 export async function mudarStatusServico(
   _prevState: MudarStatusState,
   formData: FormData,
@@ -104,18 +93,19 @@ export async function mudarStatusServico(
 
   const { servicoId, novoStatus, observacoes, responsavelId } = validatedFields.data;
 
-  const servico = await prisma.servico.findUnique({
+  const registro = await prisma.servico.findUnique({
     where: { id: servicoId },
-    select: { status: true, data: true },
+    select: { status: true, data: true, observacoes: true, responsavelId: true, concluidoEm: true },
   });
 
-  if (!servico) {
+  if (!registro) {
     return { erro: "Serviço não encontrado." };
   }
 
   // Checagem da transição sempre no servidor — nunca confia no botão que o
   // cliente conseguiu clicar.
-  if (!TRANSICOES_VALIDAS[servico.status]?.includes(novoStatus)) {
+  const servico = new Servico(registro);
+  if (!servico.podeMudarPara(novoStatus)) {
     return { erro: "Essa mudança de status não é permitida." };
   }
 
@@ -134,19 +124,26 @@ export async function mudarStatusServico(
     novoResponsavelId = responsavelId;
   }
 
+  if (novoStatus === "concluido") {
+    servico.concluir(observacoes || undefined, novoResponsavelId, new Date());
+  } else if (novoStatus === "cancelado") {
+    servico.cancelar(observacoes || undefined);
+  }
+
   await prisma.servico.update({
     where: { id: servicoId },
     data: {
-      status: novoStatus,
-      // Opcional: se preenchido, substitui o valor atual (não acumula
-      // histórico); se vazio, mantém as observações que já existiam.
-      ...(observacoes ? { observacoes } : {}),
-      ...(novoResponsavelId ? { responsavelId: novoResponsavelId } : {}),
-      ...(novoStatus === "concluido" ? { concluidoEm: new Date() } : {}),
+      status: servico.status,
+      // Só grava os campos que a regra de domínio de fato alterou.
+      ...(observacoes ? { observacoes: servico.observacoes } : {}),
+      ...(novoResponsavelId ? { responsavelId: servico.responsavelId } : {}),
+      ...(servico.concluidoEm !== registro.concluidoEm
+        ? { concluidoEm: servico.concluidoEm }
+        : {}),
     },
   });
 
-  const diaKey = toDateKey(servico.data);
+  const diaKey = toDateKey(registro.data);
   revalidatePath("/");
   redirect(`/?view=mes&data=${diaKey}&dia=${diaKey}`);
 }

@@ -2,12 +2,10 @@
 
 import { compare } from "bcryptjs";
 import { redirect } from "next/navigation";
+import { BLOQUEIO_MINUTOS, BloqueioLogin } from "@/app/domain/bloqueio-login";
 import { prisma } from "@/app/lib/db";
 import { createSession, deleteSession } from "@/app/lib/session";
 import { LoginSchema } from "@/app/lib/validation";
-
-const MAX_TENTATIVAS = 5;
-const BLOQUEIO_MINUTOS = 10;
 
 export type LoginState = { erro: string } | undefined;
 
@@ -35,11 +33,10 @@ export async function login(
   }
 
   const agora = new Date();
+  const bloqueio = new BloqueioLogin(usuario);
 
-  if (usuario.bloqueadoAte && usuario.bloqueadoAte > agora) {
-    const minutosRestantes = Math.ceil(
-      (usuario.bloqueadoAte.getTime() - agora.getTime()) / 60_000,
-    );
+  if (bloqueio.estaBloqueado(agora)) {
+    const minutosRestantes = bloqueio.minutosRestantes(agora);
     return {
       erro: `Muitas tentativas erradas. Tente novamente em ${minutosRestantes} minuto${minutosRestantes === 1 ? "" : "s"}.`,
     };
@@ -48,17 +45,13 @@ export async function login(
   const pinValido = await compare(pin, usuario.pinHash);
 
   if (!pinValido) {
-    const tentativas = usuario.tentativasFalhas + 1;
-    const deveBloquear = tentativas >= MAX_TENTATIVAS;
+    const deveBloquear = bloqueio.registrarFalha(agora);
 
     await prisma.usuario.update({
       where: { id: usuario.id },
       data: deveBloquear
-        ? {
-            tentativasFalhas: 0,
-            bloqueadoAte: new Date(agora.getTime() + BLOQUEIO_MINUTOS * 60_000),
-          }
-        : { tentativasFalhas: tentativas },
+        ? { tentativasFalhas: bloqueio.tentativasFalhas, bloqueadoAte: bloqueio.bloqueadoAte }
+        : { tentativasFalhas: bloqueio.tentativasFalhas },
     });
 
     if (deveBloquear) {
@@ -70,10 +63,10 @@ export async function login(
     return { erro: "Usuário ou PIN inválido." };
   }
 
-  if (usuario.tentativasFalhas > 0 || usuario.bloqueadoAte) {
+  if (bloqueio.registrarSucesso()) {
     await prisma.usuario.update({
       where: { id: usuario.id },
-      data: { tentativasFalhas: 0, bloqueadoAte: null },
+      data: { tentativasFalhas: bloqueio.tentativasFalhas, bloqueadoAte: bloqueio.bloqueadoAte },
     });
   }
 
