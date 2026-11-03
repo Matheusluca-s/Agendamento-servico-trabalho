@@ -1,6 +1,7 @@
 // Script para criar (ou resetar o PIN de) o primeiro usuário admin.
-// A tela de cadastro de funcionário (só admin) ainda não existe — até lá,
-// use este script manualmente.
+// Os demais funcionários são cadastrados pela área de admin
+// (/admin/funcionarios) — este script só é necessário para o primeiro
+// acesso, quando ainda não existe nenhum admin para entrar no sistema.
 //
 // Uso:
 //   npm run db:seed -- "Nome do Admin" 1234

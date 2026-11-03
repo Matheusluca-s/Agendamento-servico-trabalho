@@ -6,9 +6,9 @@ ar-condicionado. Trabalho final da disciplina de Análise Orientada a Objetos.
 ## Objetivo
 
 **Problema.** A Climar é uma empresa pequena (o dono e de 2 a 5 funcionários, divididos em duas
-equipes) que faz instalação, manutenção e limpeza de ar-condicionado. Os serviços eram combinados
-de forma informal, então era difícil saber o que estava marcado para cada dia, quem iria fazer e o
-que já tinha sido concluído.
+equipes) que faz instalação, manutenção e limpeza de ar-condicionado. O dono passava os serviços aos
+funcionários por WhatsApp, sem um lugar único para ver a agenda da semana nem acompanhar o que já
+tinha sido feito.
 
 **Público.** Os funcionários e o dono (administrador), que usam o sistema pelo celular, em campo,
 entre um atendimento e outro. É um sistema de uso interno, não um produto comercial.
